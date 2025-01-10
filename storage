@@ -1,44 +1,26 @@
-@Before
-    public void beforeScenario(Scenario scenario) {
-        // Generowanie unikalnej nazwy pliku logów na podstawie nazwy scenariusza lub ID
-        String scenarioName = scenario.getName().replaceAll("\\s+", "_"); // Zastępuje spacje podkreśleniami
-        String uniqueId = UUID.randomUUID().toString(); // Losowy identyfikator
-        logFilePath = "target/logs/test-logs-" + scenarioName + "-" + uniqueId + ".log";
-        
-        // Tworzenie pliku logów przed rozpoczęciem testu
-        try {
-            Path path = Paths.get(logFilePath);
-            if (!Files.exists(path.getParent())) {
-                Files.createDirectories(path.getParent()); // Tworzymy foldery, jeśli nie istnieją
-            }
-            Files.createFile(path); // Tworzymy plik logu
-        } catch (IOException e) {
-            logger.error("Failed to create log file for scenario: " + scenario.getName(), e);
-        }
+<configuration>
 
-        // Konfigurujemy logback do zapisu logów do tego unikalnego pliku
-        // Warto tu zainstalować logger, który zapisuje logi do tego pliku, np. poprzez dynamiczną zmianę appendera.
-    }
+    <!-- Appender do zapisywania logów na konsoli -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
-    @After
-    public void afterScenario(Scenario scenario) {
-        // Zbieramy logi z pliku po zakończeniu scenariusza
-        try {
-            String logs = gatherLogs(logFilePath);
-            
-            // Dołączamy logi do raportu Cucumbera
-            scenario.attach(logs.getBytes(), "text/plain", "Logs for " + scenario.getName());
-            
-            // Usuwamy plik logów po zakończeniu scenariusza (jeśli chcesz usunąć logi po każdym scenariuszu)
-            Files.deleteIfExists(Paths.get(logFilePath));
-        } catch (IOException e) {
-            logger.error("Failed to gather logs or delete the log file after scenario: " + scenario.getName(), e);
-        }
-    }
+    <!-- Appender do zapisywania logów do pliku -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_FILE_PATH}</file> <!-- Użycie zmiennej środowiskowej -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
-    // Metoda do zbierania logów z pliku
-    private String gatherLogs(String logFilePath) throws IOException {
-        // Odczytanie zawartości pliku logów jako tekst
-        return new String(Files.readAllBytes(Paths.get(logFilePath)));
-    }
-}
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
+
+
