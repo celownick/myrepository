@@ -1,26 +1,29 @@
-<configuration>
+@Before
+public void beforeScenario(Scenario scenario) {
+    // Generowanie unikalnej nazwy pliku logów
+    String scenarioName = scenario.getName().replaceAll("\\s+", "_");
+    String uniqueId = UUID.randomUUID().toString();
+    logFilePath = "target/logs/test-logs-" + scenarioName + "-" + uniqueId + ".log";
 
-    <!-- Appender do zapisywania logów na konsoli -->
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+    // Tworzenie pliku logów i folderów
+    try {
+        Path path = Paths.get(logFilePath);
+        if (!Files.exists(path.getParent())) {
+            Files.createDirectories(path.getParent());
+        }
+        Files.createFile(path);
+    } catch (IOException e) {
+        logger.error("Failed to create log file for scenario: " + scenario.getName(), e);
+    }
 
-    <!-- Appender do zapisywania logów do pliku -->
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${LOG_FILE_PATH}</file> <!-- Użycie zmiennej środowiskowej -->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+    // Ustawienie dynamicznej ścieżki dla appendera FILE
+    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+    Logger rootLogger = context.getLogger("ROOT");
+    FileAppender<ILoggingEvent> fileAppender = (FileAppender<ILoggingEvent>) rootLogger.getAppender("FILE");
 
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/>
-    </root>
-
-</configuration>
-
-
+    if (fileAppender != null) {
+        fileAppender.stop(); // Zatrzymanie aktualnego appendera
+        fileAppender.setFile(logFilePath); // Ustawienie nowej ścieżki
+        fileAppender.start(); // Uruchomienie z nową ścieżką
+    }
+}
