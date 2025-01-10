@@ -1,62 +1,44 @@
-import io.cucumber.java.After;
-import io.cucumber.java.Scenario;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+@Before
+    public void beforeScenario(Scenario scenario) {
+        // Generowanie unikalnej nazwy pliku logów na podstawie nazwy scenariusza lub ID
+        String scenarioName = scenario.getName().replaceAll("\\s+", "_"); // Zastępuje spacje podkreśleniami
+        String uniqueId = UUID.randomUUID().toString(); // Losowy identyfikator
+        logFilePath = "target/logs/test-logs-" + scenarioName + "-" + uniqueId + ".log";
+        
+        // Tworzenie pliku logów przed rozpoczęciem testu
+        try {
+            Path path = Paths.get(logFilePath);
+            if (!Files.exists(path.getParent())) {
+                Files.createDirectories(path.getParent()); // Tworzymy foldery, jeśli nie istnieją
+            }
+            Files.createFile(path); // Tworzymy plik logu
+        } catch (IOException e) {
+            logger.error("Failed to create log file for scenario: " + scenario.getName(), e);
+        }
 
-public class CucumberListener {
-
-    private static final Logger logger = LoggerFactory.getLogger(CucumberListener.class);
+        // Konfigurujemy logback do zapisu logów do tego unikalnego pliku
+        // Warto tu zainstalować logger, który zapisuje logi do tego pliku, np. poprzez dynamiczną zmianę appendera.
+    }
 
     @After
     public void afterScenario(Scenario scenario) {
-        // Dodajemy logi do scenariusza
-        String logs = gatherLogs();
-        
-        // Dodanie logów do raportu Cucumber (np. jako załącznik)
-        scenario.attach(logs.getBytes(), "text/plain", "Test Logs");
-        
-        // Logi w konsoli (opcjonalnie)
-        if (scenario.isFailed()) {
-            logger.error("Scenario failed: " + scenario.getName());
-        } else {
-            logger.info("Scenario passed: " + scenario.getName());
+        // Zbieramy logi z pliku po zakończeniu scenariusza
+        try {
+            String logs = gatherLogs(logFilePath);
+            
+            // Dołączamy logi do raportu Cucumbera
+            scenario.attach(logs.getBytes(), "text/plain", "Logs for " + scenario.getName());
+            
+            // Usuwamy plik logów po zakończeniu scenariusza (jeśli chcesz usunąć logi po każdym scenariuszu)
+            Files.deleteIfExists(Paths.get(logFilePath));
+        } catch (IOException e) {
+            logger.error("Failed to gather logs or delete the log file after scenario: " + scenario.getName(), e);
         }
     }
 
-    private String gatherLogs() {
-        // Odczyt logów z pliku
-        String logFilePath = "target/test-logs.log";  // Przykład ścieżki
-        try {
-            return new String(Files.readAllBytes(Paths.get(logFilePath)));
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "Unable to gather logs from file.";
-        }
+    // Metoda do zbierania logów z pliku
+    private String gatherLogs(String logFilePath) throws IOException {
+        // Odczytanie zawartości pliku logów jako tekst
+        return new String(Files.readAllBytes(Paths.get(logFilePath)));
     }
 }
-
-<configuration>
-
-    <!-- Appender do zapisywania logów na konsoli -->
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Appender do zapisywania logów do pliku -->
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>target/test-logs.log</file> <!-- Ścieżka do pliku, w którym będą zapisane logi -->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/> <!-- Odwołanie do appendera zapisującego do pliku -->
-    </root>
-
-</configuration>
-
