@@ -1,0 +1,62 @@
+import io.cucumber.java.After;
+import io.cucumber.java.Scenario;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class CucumberListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(CucumberListener.class);
+
+    @After
+    public void afterScenario(Scenario scenario) {
+        // Dodajemy logi do scenariusza
+        String logs = gatherLogs();
+        
+        // Dodanie logów do raportu Cucumber (np. jako załącznik)
+        scenario.attach(logs.getBytes(), "text/plain", "Test Logs");
+        
+        // Logi w konsoli (opcjonalnie)
+        if (scenario.isFailed()) {
+            logger.error("Scenario failed: " + scenario.getName());
+        } else {
+            logger.info("Scenario passed: " + scenario.getName());
+        }
+    }
+
+    private String gatherLogs() {
+        // Odczyt logów z pliku
+        String logFilePath = "target/test-logs.log";  // Przykład ścieżki
+        try {
+            return new String(Files.readAllBytes(Paths.get(logFilePath)));
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Unable to gather logs from file.";
+        }
+    }
+}
+
+<configuration>
+
+    <!-- Appender do zapisywania logów na konsoli -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender do zapisywania logów do pliku -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>target/test-logs.log</file> <!-- Ścieżka do pliku, w którym będą zapisane logi -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/> <!-- Odwołanie do appendera zapisującego do pliku -->
+    </root>
+
+</configuration>
+
