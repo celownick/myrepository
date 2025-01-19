@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",                // Używamy ESNext do obsługi modułów ESM
+    "target": "ESNext",                // Ustawienie targetu na ESNext (odpowiednie dla ESM)
+    "moduleResolution": "node",        // Wymusza używanie rozwiązywania modułów jak w Node.js
+    "strict": true,                    // Zaleca się włączenie trybu ścisłego w TypeScript
+    "esModuleInterop": true,           // Wymaga tej opcji do lepszej interoperacyjności z CommonJS
+    "skipLibCheck": true,              // Można ustawić na true, aby zignorować sprawdzanie bibliotek
+    "outDir": "./dist",                // Określenie folderu wyjściowego
+    "allowJs": true,                   // Umożliwia kompilację plików JS, jeśli masz takie w projekcie
+    "resolveJsonModule": true,         // Wymaga tej opcji, jeśli używasz plików .json
+    "types": ["node"],                 // Używamy definicji typów dla Node.js
+    "declaration": true                // Opcja generowania plików z deklaracjami (.d.ts)
+  },
+  "include": ["features/**/*.ts"],      // Zawiera pliki kroków w TypeScript
+  "exclude": ["node_modules"]           // Wyklucza folder node_modules
+}
