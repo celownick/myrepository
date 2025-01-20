@@ -74,3 +74,23 @@ public class Controller extends BaseController {
                 .response(); // Pobranie odpowiedzi
     }
 }
+
+
+public class Controller {
+
+    private static final String BASE_URL;
+
+    // Stałe endpointy przypisane do metod
+    private static final String POST_ENDPOINT = "/portfolio/attribution";
+    private static final String GET_ENDPOINT = "/portfolio/attribution";
+
+    static {
+        // Wczytaj baseUrl z pliku application.properties
+        Properties properties = new Properties();
+        try (FileInputStream fis = new FileInputStream("src/main/resources/application.properties")) {
+            properties.load(fis);
+            BASE_URL = properties.getProperty("base.url");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load base URL from properties file", e);
+        }
+    }
