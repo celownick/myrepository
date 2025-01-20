@@ -1,29 +1,76 @@
-@Before
-public void beforeScenario(Scenario scenario) {
-    // Generowanie unikalnej nazwy pliku logów
-    String scenarioName = scenario.getName().replaceAll("\\s+", "_");
-    String uniqueId = UUID.randomUUID().toString();
-    logFilePath = "target/logs/test-logs-" + scenarioName + "-" + uniqueId + ".log";
+import io.restassured.response.Response;
 
-    // Tworzenie pliku logów i folderów
-    try {
-        Path path = Paths.get(logFilePath);
-        if (!Files.exists(path.getParent())) {
-            Files.createDirectories(path.getParent());
-        }
-        Files.createFile(path);
-    } catch (IOException e) {
-        logger.error("Failed to create log file for scenario: " + scenario.getName(), e);
+import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Controller controller = new Controller();
+
+        // Wykonanie żądania POST
+        String requestBody = "{ \"key\": \"value\" }";
+        Response postResponse = controller.postPortfolioAttribution(requestBody);
+        System.out.println("POST Response: " + postResponse.getBody().asString());
+
+        // Wykonanie żądania GET
+        Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("filter", "example");
+        Response getResponse = controller.getPortfolioAttribution(queryParams);
+        System.out.println("GET Response: " + getResponse.getBody().asString());
+    }
+}
+
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+
+import java.util.Map;
+
+public class Controller extends BaseController {
+
+    // Stałe endpointy przypisane do metod
+    private static final String POST_ENDPOINT = "/portfolio/attribution";
+    private static final String GET_ENDPOINT = "/portfolio/attribution";
+
+    public Controller() {
+        super(); // Wywołanie konstruktora z BaseController
     }
 
-    // Ustawienie dynamicznej ścieżki dla appendera FILE
-    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-    Logger rootLogger = context.getLogger("ROOT");
-    FileAppender<ILoggingEvent> fileAppender = (FileAppender<ILoggingEvent>) rootLogger.getAppender("FILE");
+    /**
+     * Metoda wykonująca żądanie POST na stały endpoint.
+     *
+     * @param requestBody Ciało żądania w formacie JSON.
+     * @return Odpowiedź z serwera (Response).
+     */
+    public Response postPortfolioAttribution(String requestBody) {
+        return RestAssured.given()
+                .baseUri(baseUrl) // Pobranie baseUrl z BaseController
+                .headers(Map.of(
+                        "Content-Type", "application/json",
+                        "Authorization", "Bearer YOUR_TOKEN")) // Standardowe nagłówki
+                .body(requestBody) // Dodanie ciała żądania
+                .when()
+                .post(POST_ENDPOINT) // Użycie endpointa przypisanego do POST
+                .then()
+                .extract()
+                .response(); // Pobranie odpowiedzi
+    }
 
-    if (fileAppender != null) {
-        fileAppender.stop(); // Zatrzymanie aktualnego appendera
-        fileAppender.setFile(logFilePath); // Ustawienie nowej ścieżki
-        fileAppender.start(); // Uruchomienie z nową ścieżką
+    /**
+     * Metoda wykonująca żądanie GET na stały endpoint.
+     *
+     * @param queryParams Parametry zapytania w formacie klucz-wartość.
+     * @return Odpowiedź z serwera (Response).
+     */
+    public Response getPortfolioAttribution(Map<String, String> queryParams) {
+        return RestAssured.given()
+                .baseUri(baseUrl) // Pobranie baseUrl z BaseController
+                .headers(Map.of(
+                        "Authorization", "Bearer YOUR_TOKEN")) // Standardowe nagłówki
+                .queryParams(queryParams) // Dodanie parametrów zapytania
+                .when()
+                .get(GET_ENDPOINT) // Użycie endpointa przypisanego do GET
+                .then()
+                .extract()
+                .response(); // Pobranie odpowiedzi
     }
 }
