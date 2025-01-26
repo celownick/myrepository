@@ -69,3 +69,35 @@ class PageCreator {
   );
   console.log(response);
 })();
+
+
+
+// Definicja niestandardowego wyjątku
+class TemplateNotFoundException extends Error {
+  constructor(templateName: string) {
+    super(`Szablon o nazwie "${templateName}" nie został znaleziony.`);
+    this.name = 'TemplateNotFoundException';
+  }
+}
+
+class TemplateManager {
+  private templateMap: Map<string, string>;
+
+  constructor() {
+    this.templateMap = new Map<string, string>([
+      ['Article Template', '/apps/dpws/templates/articlePage'],
+      // Dodaj kolejne mapowania nazw szablonów na ścieżki
+    ]);
+  }
+
+  public getTemplatePath(templateName: string): string {
+    const templatePath = this.templateMap.get(templateName);
+    if (!templatePath) {
+      throw new TemplateNotFoundException(templateName);
+    }
+    return templatePath;
+  }
+
+  // Inne metody klasy
+}
+
