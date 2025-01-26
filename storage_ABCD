@@ -1,17 +1,71 @@
-{
-  "compilerOptions": {
-    "module": "ESNext",                // Używamy ESNext do obsługi modułów ESM
-    "target": "ESNext",                // Ustawienie targetu na ESNext (odpowiednie dla ESM)
-    "moduleResolution": "node",        // Wymusza używanie rozwiązywania modułów jak w Node.js
-    "strict": true,                    // Zaleca się włączenie trybu ścisłego w TypeScript
-    "esModuleInterop": true,           // Wymaga tej opcji do lepszej interoperacyjności z CommonJS
-    "skipLibCheck": true,              // Można ustawić na true, aby zignorować sprawdzanie bibliotek
-    "outDir": "./dist",                // Określenie folderu wyjściowego
-    "allowJs": true,                   // Umożliwia kompilację plików JS, jeśli masz takie w projekcie
-    "resolveJsonModule": true,         // Wymaga tej opcji, jeśli używasz plików .json
-    "types": ["node"],                 // Używamy definicji typów dla Node.js
-    "declaration": true                // Opcja generowania plików z deklaracjami (.d.ts)
-  },
-  "include": ["features/**/*.ts"],      // Zawiera pliki kroków w TypeScript
-  "exclude": ["node_modules"]           // Wyklucza folder node_modules
+import { APIRequestContext, request } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+class PageCreator {
+  private apiRequestContext: APIRequestContext;
+  private templateMap: Map<string, string>;
+
+  constructor() {
+    this.apiRequestContext = await request.newContext({
+      baseURL: process.env.BASE_URL,
+      httpCredentials: {
+        username: process.env.AUTH_USERNAME || '',
+        password: process.env.AUTH_PASSWORD || '',
+      },
+      proxy: {
+        server: process.env.PROXY_SERVER || '',
+        username: process.env.PROXY_USERNAME || '',
+        password: process.env.PROXY_PASSWORD || '',
+      },
+    });
+
+    this.templateMap = new Map<string, string>([
+      ['Article Template', '/apps/dpws/templates/articlePage'],
+      // Dodaj kolejne mapowania nazw szablonów na ścieżki
+    ]);
+  }
+
+  public async createPage(
+    templateName: string,
+    parentPath: string,
+    title: string,
+    label: string
+  ) {
+    const templatePath = this.templateMap.get(templateName);
+    if (!templatePath) {
+      throw new Error(`Template name "${templateName}" not found in template map.`);
+    }
+
+    const response = await this.apiRequestContext.post('/bin/wcmcommand', {
+      form: {
+        templatePath,
+        parentPath,
+        shallow: 'true',
+        cmd: 'createPage',
+        title,
+        label,
+      },
+    });
+
+    if (!response.ok()) {
+      throw new Error(`Failed to create page: ${response.status()} ${response.statusText()}`);
+    }
+
+    const responseBody = await response.json();
+    return responseBody;
+  }
 }
+
+// Przykładowe użycie:
+(async () => {
+  const pageCreator = new PageCreator();
+  const response = await pageCreator.createPage(
+    'Article Template',
+    '/content/hsbc/hbqa/en_gb/automation/templates',
+    'Playwright API test',
+    'article-page-template'
+  );
+  console.log(response);
+})();
