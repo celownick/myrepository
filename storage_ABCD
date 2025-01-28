@@ -1,103 +1,91 @@
-import { APIRequestContext, request } from '@playwright/test';
-import * as dotenv from 'dotenv';
+import { request, APIRequestContext } from 'playwright';
 
-dotenv.config();
+class API {
+  private requestContext: APIRequestContext | null = null; // Kontekst żądań API
 
-class PageCreator {
-  private apiRequestContext: APIRequestContext;
-  private templateMap: Map<string, string>;
+  // Metoda do tworzenia instancji z konfiguracją proxy, credentials i baseURL
+  async createInstance(config: {
+    baseURL: string;
+    proxy: { server: string; username: string; password: string };
+    httpCredentials: { username: string; password: string };
+    headers?: Record<string, string>;
+  }): Promise<void> {
+    const { baseURL, proxy, httpCredentials, headers } = config;
 
-  constructor() {
-    this.apiRequestContext = await request.newContext({
-      baseURL: process.env.BASE_URL,
-      httpCredentials: {
-        username: process.env.AUTH_USERNAME || '',
-        password: process.env.AUTH_PASSWORD || '',
-      },
-      proxy: {
-        server: process.env.PROXY_SERVER || '',
-        username: process.env.PROXY_USERNAME || '',
-        password: process.env.PROXY_PASSWORD || '',
-      },
+    // Tworzenie instancji kontekstu API z konfiguracją
+    this.requestContext = await request.newContext({
+      baseURL,
+      proxy,
+      httpCredentials,
+      extraHTTPHeaders: headers || {}, // Dodanie opcjonalnych nagłówków
     });
-
-    this.templateMap = new Map<string, string>([
-      ['Article Template', '/apps/dpws/templates/articlePage'],
-      // Dodaj kolejne mapowania nazw szablonów na ścieżki
-    ]);
   }
 
-  public async createPage(
-    templateName: string,
-    parentPath: string,
-    title: string,
-    label: string
-  ) {
-    const templatePath = this.templateMap.get(templateName);
-    if (!templatePath) {
-      throw new Error(`Template name "${templateName}" not found in template map.`);
+  // Metoda do wysyłania żądań POST
+  async post(endpoint: string, data: Record<string, any>, headers?: Record<string, string>): Promise<any> {
+    if (!this.requestContext) {
+      throw new Error('API instance is not initialized. Call createInstance() first.');
     }
 
-    const response = await this.apiRequestContext.post('/bin/wcmcommand', {
-      form: {
-        templatePath,
-        parentPath,
-        shallow: 'true',
-        cmd: 'createPage',
-        title,
-        label,
+    // Wykonanie żądania POST
+    const response = await this.requestContext.post(endpoint, {
+      headers: {
+        'Content-Type': 'application/json', // Domyślny nagłówek
+        ...(headers || {}), // Dodanie dodatkowych nagłówków
       },
+      data,
     });
 
-    if (!response.ok()) {
-      throw new Error(`Failed to create page: ${response.status()} ${response.statusText()}`);
+    // Sprawdzenie odpowiedzi
+    if (response.status() >= 400) {
+      throw new Error(`Request failed with status ${response.status()}: ${await response.text()}`);
     }
 
-    const responseBody = await response.json();
-    return responseBody;
+    return response.json(); // Parsowanie odpowiedzi jako JSON
+  }
+
+  // Metoda do zamknięcia kontekstu API
+  async dispose(): Promise<void> {
+    if (this.requestContext) {
+      await this.requestContext.dispose();
+      this.requestContext = null;
+    }
   }
 }
 
-// Przykładowe użycie:
+// Przykład użycia
 (async () => {
-  const pageCreator = new PageCreator();
-  const response = await pageCreator.createPage(
-    'Article Template',
-    '/content/hsbc/hbqa/en_gb/automation/templates',
-    'Playwright API test',
-    'article-page-template'
-  );
-  console.log(response);
+  const api = new API();
+
+  try {
+    // Konfiguracja API
+    await api.createInstance({
+      baseURL: 'https://example-api.com',
+      proxy: {
+        server: 'http://proxy-url:port',
+        username: 'proxy-username',
+        password: 'proxy-password',
+      },
+      httpCredentials: {
+        username: 'api-username',
+        password: 'api-password',
+      },
+      headers: {
+        'Custom-Header': 'CustomValue', // Opcjonalne nagłówki globalne
+      },
+    });
+
+    // Wysyłanie żądania POST
+    const response = await api.post('/endpoint', {
+      key1: 'value1',
+      key2: 'value2',
+    });
+
+    console.log('Odpowiedź z API:', response);
+  } catch (error) {
+    console.error('Wystąpił błąd:', error);
+  } finally {
+    // Zakończenie pracy z API
+    await api.dispose();
+  }
 })();
-
-
-
-// Definicja niestandardowego wyjątku
-class TemplateNotFoundException extends Error {
-  constructor(templateName: string) {
-    super(`Szablon o nazwie "${templateName}" nie został znaleziony.`);
-    this.name = 'TemplateNotFoundException';
-  }
-}
-
-class TemplateManager {
-  private templateMap: Map<string, string>;
-
-  constructor() {
-    this.templateMap = new Map<string, string>([
-      ['Article Template', '/apps/dpws/templates/articlePage'],
-      // Dodaj kolejne mapowania nazw szablonów na ścieżki
-    ]);
-  }
-
-  public getTemplatePath(templateName: string): string {
-    const templatePath = this.templateMap.get(templateName);
-    if (!templatePath) {
-      throw new TemplateNotFoundException(templateName);
-    }
-    return templatePath;
-  }
-
-  // Inne metody klasy
-}
-
