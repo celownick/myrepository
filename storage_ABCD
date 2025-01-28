@@ -1,64 +1,14 @@
-import { request, APIRequestContext } from 'playwright';
+import { test, expect } from '@playwright/test';
+import { API } from './api'; // Zakładamy, że klasa API jest w pliku api.ts
 
-class API {
-  private requestContext: APIRequestContext | null = null; // Kontekst żądań API
+test.describe('API POST Request Tests', () => {
+  let api: API;
 
-  // Metoda do tworzenia instancji z konfiguracją proxy, credentials i baseURL
-  async createInstance(config: {
-    baseURL: string;
-    proxy: { server: string; username: string; password: string };
-    httpCredentials: { username: string; password: string };
-    headers?: Record<string, string>;
-  }): Promise<void> {
-    const { baseURL, proxy, httpCredentials, headers } = config;
+  // Ustawienia przed testami
+  test.beforeAll(async () => {
+    api = new API();
 
-    // Tworzenie instancji kontekstu API z konfiguracją
-    this.requestContext = await request.newContext({
-      baseURL,
-      proxy,
-      httpCredentials,
-      extraHTTPHeaders: headers || {}, // Dodanie opcjonalnych nagłówków
-    });
-  }
-
-  // Metoda do wysyłania żądań POST
-  async post(endpoint: string, data: Record<string, any>, headers?: Record<string, string>): Promise<any> {
-    if (!this.requestContext) {
-      throw new Error('API instance is not initialized. Call createInstance() first.');
-    }
-
-    // Wykonanie żądania POST
-    const response = await this.requestContext.post(endpoint, {
-      headers: {
-        'Content-Type': 'application/json', // Domyślny nagłówek
-        ...(headers || {}), // Dodanie dodatkowych nagłówków
-      },
-      data,
-    });
-
-    // Sprawdzenie odpowiedzi
-    if (response.status() >= 400) {
-      throw new Error(`Request failed with status ${response.status()}: ${await response.text()}`);
-    }
-
-    return response.json(); // Parsowanie odpowiedzi jako JSON
-  }
-
-  // Metoda do zamknięcia kontekstu API
-  async dispose(): Promise<void> {
-    if (this.requestContext) {
-      await this.requestContext.dispose();
-      this.requestContext = null;
-    }
-  }
-}
-
-// Przykład użycia
-(async () => {
-  const api = new API();
-
-  try {
-    // Konfiguracja API
+    // Konfiguracja instancji API
     await api.createInstance({
       baseURL: 'https://example-api.com',
       proxy: {
@@ -71,21 +21,52 @@ class API {
         password: 'api-password',
       },
       headers: {
-        'Custom-Header': 'CustomValue', // Opcjonalne nagłówki globalne
+        'Custom-Header': 'CustomValue', // Opcjonalne globalne nagłówki
       },
     });
+  });
 
-    // Wysyłanie żądania POST
-    const response = await api.post('/endpoint', {
+  // Czyszczenie po testach
+  test.afterAll(async () => {
+    await api.dispose();
+  });
+
+  // Test poprawnego żądania POST
+  test('should send a POST request and receive a valid response', async () => {
+    const postData = {
       key1: 'value1',
       key2: 'value2',
-    });
+    };
 
-    console.log('Odpowiedź z API:', response);
-  } catch (error) {
-    console.error('Wystąpił błąd:', error);
-  } finally {
-    // Zakończenie pracy z API
-    await api.dispose();
-  }
-})();
+    // Wysłanie żądania POST
+    const response = await api.post('/endpoint', postData);
+
+    // Weryfikacja statusu odpowiedzi i danych
+    expect(response).toBeTruthy();
+    expect(response).toMatchObject({
+      success: true, // Zakładamy, że odpowiedź zawiera pole success: true
+      data: {
+        key1: 'value1',
+        key2: 'value2',
+      },
+    });
+  });
+
+  // Test błędnego żądania POST
+  test('should handle an error response', async () => {
+    const invalidPostData = {
+      invalidKey: 'invalidValue',
+    };
+
+    let errorMessage = '';
+    try {
+      // Próba wysłania żądania z błędnymi danymi
+      await api.post('/endpoint', invalidPostData);
+    } catch (error) {
+      errorMessage = (error as Error).message;
+    }
+
+    // Weryfikacja, czy odpowiedni błąd został zwrócony
+    expect(errorMessage).toContain('Request failed with status');
+  });
+});
