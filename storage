@@ -5,4 +5,47 @@ Host gitlab.com
   PreferredAuthentications publickey
   IdentityFile C:\Users\TwojaNazwaUzytkownika\.ssh\id_rsa
 
+before_script:
+  - mkdir -p ${HOME}/.m2  # Tworzy katalog Maven, jeśli go nie ma
+  - if [ -n "$CB_MAVEN_SETTINGS" ]; then echo "$CB_MAVEN_SETTINGS" > ${HOME}/.m2/settings.xml; fi
+  - ls -la ${HOME}/.m2/  # Debug: Sprawdź, czy plik powstał
+  - cat ${HOME}/.m2/settings.xml  # Debug: Sprawdź zawartość pliku (opcjonalnie)
+====
+image: maven:3.9.6-eclipse-temurin-17  # Oficjalny obraz z Maven i Java 17
 
+stages:
+  - build
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"  # Ustawienie lokalnego repozytorium Maven
+
+cache:
+  key: maven-cache
+  paths:
+    - .m2/repository  # Cache Maven dla zależności
+  policy: pull-push
+
+before_script:
+  - mkdir -p ${HOME}/.m2
+  - if [ -n "$CB_MAVEN_SETTINGS" ]; then echo "$CB_MAVEN_SETTINGS" > ${HOME}/.m2/settings.xml; fi
+  - java -version
+  - mvn -version
+
+build:
+  stage: build
+  script:
+    - mvn clean compile
+  artifacts:
+    paths:
+      - target/  # Przechowywanie skompilowanych plików
+
+test:
+  stage: test
+  script:
+    - mvn test
+  artifacts:
+    reports:
+      junit: target/surefire-reports/*.xml  # Raporty testów JUnit
+    paths:
+      - target/surefire-reports/
