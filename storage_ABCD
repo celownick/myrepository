@@ -1,72 +1,61 @@
-import { test, expect } from '@playwright/test';
-import { API } from './api'; // Zakładamy, że klasa API jest w pliku api.ts
+import { request } from '@playwright/test';
+import axios, { AxiosRequestConfig } from 'axios';
+import FormData from 'form-data';
 
-test.describe('API POST Request Tests', () => {
-  let api: API;
+// 🔹 Konfiguracja proxy
+const proxyConfig = {
+  host: 'proxy.example.com',
+  port: 8080,
+  username: 'proxyUser',
+  password: 'proxyPass',
+};
 
-  // Ustawienia przed testami
-  test.beforeAll(async () => {
-    api = new API();
+// 🔹 Konfiguracja autoryzacji (Basic Auth)
+const authConfig = {
+  username: 'apiUser',
+  password: 'apiPass',
+};
 
-    // Konfiguracja instancji API
-    await api.createInstance({
-      baseURL: 'https://example-api.com',
-      proxy: {
-        server: 'http://proxy-url:port',
-        username: 'proxy-username',
-        password: 'proxy-password',
+// 🔹 Funkcja do wykonania requestu
+async function sendPostRequest() {
+  // 1️⃣ Tworzymy form-data
+  const form = new FormData();
+  form.append('key1', 'value1');
+  form.append('key2', 'value2');
+  
+  // 2️⃣ Pobieramy nagłówki generowane przez form-data
+  const headers = form.getHeaders();
+  headers['Authorization'] = `Basic ${Buffer.from(`${authConfig.username}:${authConfig.password}`).toString('base64')}`;
+
+  // 3️⃣ Konfiguracja AxiosRequestConfig
+  const axiosConfig: AxiosRequestConfig = {
+    method: 'POST',
+    url: 'https://api.example.com/endpoint',  // 🔹 Zmień na swój URL
+    headers: headers,
+    data: form,
+    proxy: {
+      protocol: 'http',
+      host: proxyConfig.host,
+      port: proxyConfig.port,
+      auth: {
+        username: proxyConfig.username,
+        password: proxyConfig.password,
       },
-      httpCredentials: {
-        username: 'api-username',
-        password: 'api-password',
-      },
-      headers: {
-        'Custom-Header': 'CustomValue', // Opcjonalne globalne nagłówki
-      },
-    });
-  });
+    },
+  };
 
-  // Czyszczenie po testach
-  test.afterAll(async () => {
-    await api.dispose();
-  });
+  try {
+    // 4️⃣ Wysyłamy żądanie
+    const response = await axios(axiosConfig);
+    console.log('Response:', response.data);
+  } catch (error: any) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+}
 
-  // Test poprawnego żądania POST
-  test('should send a POST request and receive a valid response', async () => {
-    const postData = {
-      key1: 'value1',
-      key2: 'value2',
-    };
-
-    // Wysłanie żądania POST
-    const response = await api.post('/endpoint', postData);
-
-    // Weryfikacja statusu odpowiedzi i danych
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject({
-      success: true, // Zakładamy, że odpowiedź zawiera pole success: true
-      data: {
-        key1: 'value1',
-        key2: 'value2',
-      },
-    });
-  });
-
-  // Test błędnego żądania POST
-  test('should handle an error response', async () => {
-    const invalidPostData = {
-      invalidKey: 'invalidValue',
-    };
-
-    let errorMessage = '';
-    try {
-      // Próba wysłania żądania z błędnymi danymi
-      await api.post('/endpoint', invalidPostData);
-    } catch (error) {
-      errorMessage = (error as Error).message;
-    }
-
-    // Weryfikacja, czy odpowiedni błąd został zwrócony
-    expect(errorMessage).toContain('Request failed with status');
-  });
-});
+// 🔹 Uruchomienie requestu w Playwright
+(async () => {
+  const context = await request.newContext();
+  await sendPostRequest();
+  await context.dispose();
+})();
