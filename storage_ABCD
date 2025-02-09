@@ -1,61 +1,72 @@
-import { request } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import axios, { AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 
-// 🔹 Konfiguracja proxy
-const proxyConfig = {
-  host: 'proxy.example.com',
-  port: 8080,
-  username: 'proxyUser',
-  password: 'proxyPass',
-};
+class Api {
+  private static instance: Api | null = null;
+  private proxyConfig: any;
+  private baseUrl: string;
 
-// 🔹 Konfiguracja autoryzacji (Basic Auth)
-const authConfig = {
-  username: 'apiUser',
-  password: 'apiPass',
-};
+  private constructor() {
+    this.baseUrl = 'https://your-api-url.com';
+    this.createInstance();
+  }
 
-// 🔹 Funkcja do wykonania requestu
-async function sendPostRequest() {
-  // 1️⃣ Tworzymy form-data
-  const form = new FormData();
-  form.append('key1', 'value1');
-  form.append('key2', 'value2');
-  
-  // 2️⃣ Pobieramy nagłówki generowane przez form-data
-  const headers = form.getHeaders();
-  headers['Authorization'] = `Basic ${Buffer.from(`${authConfig.username}:${authConfig.password}`).toString('base64')}`;
+  public static getInstance(): Api {
+    if (!Api.instance) {
+      Api.instance = new Api();
+    }
+    return Api.instance;
+  }
 
-  // 3️⃣ Konfiguracja AxiosRequestConfig
-  const axiosConfig: AxiosRequestConfig = {
-    method: 'POST',
-    url: 'https://api.example.com/endpoint',  // 🔹 Zmień na swój URL
-    headers: headers,
-    data: form,
-    proxy: {
-      protocol: 'http',
-      host: proxyConfig.host,
-      port: proxyConfig.port,
+  private createInstance() {
+    const isJenkins = process.env.CI === 'true'; // Wykrywanie środowiska
+    this.proxyConfig = {
+      host: 'proxy.example.com',
+      port: 8080,
       auth: {
-        username: proxyConfig.username,
-        password: proxyConfig.password,
+        username: isJenkins ? process.env.JENKINS_USERNAME : process.env.LOCAL_USERNAME,
+        password: isJenkins ? process.env.JENKINS_PASSWORD : process.env.LOCAL_PASSWORD,
       },
-    },
-  };
+      protocol: 'http',
+    };
+  }
 
-  try {
-    // 4️⃣ Wysyłamy żądanie
-    const response = await axios(axiosConfig);
-    console.log('Response:', response.data);
-  } catch (error: any) {
-    console.error('Error:', error.response ? error.response.data : error.message);
+  async createPage() {
+    const formData = new FormData();
+    formData.append('templatePath', 'apps/dpws/');
+    formData.append('parentPath', '/content/templates');
+
+    const config: AxiosRequestConfig = {
+      method: 'POST',
+      url: `${this.baseUrl}/createPage`,
+      data: formData,
+      headers: formData.getHeaders(),
+      proxy: this.proxyConfig,
+    };
+
+    const response = await axios(config);
+    expect(response.status).toBe(200);
+    return response.data;
+  }
+
+  async deletePage(pageId: string) {
+    const config: AxiosRequestConfig = {
+      method: 'DELETE',
+      url: `${this.baseUrl}/deletePage/${pageId}`,
+      proxy: this.proxyConfig,
+    };
+
+    const response = await axios(config);
+    expect(response.status).toBe(200);
   }
 }
 
-// 🔹 Uruchomienie requestu w Playwright
-(async () => {
-  const context = await request.newContext();
-  await sendPostRequest();
-  await context.dispose();
-})();
+test('API Test - Create and Delete Page', async ({}) => {
+  const api = Api.getInstance();
+
+  const pageData = await api.createPage();
+  expect(pageData).toHaveProperty('id');
+
+  await api.deletePage(pageData.id);
+});
