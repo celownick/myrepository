@@ -70,3 +70,7 @@ test('API Test - Create and Delete Page', async ({}) => {
 
   await api.deletePage(pageData.id);
 });
+
+  private generateBasicAuthToken(username: string, password: string): string {
+    return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+  }
