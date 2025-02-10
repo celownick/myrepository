@@ -1,4 +1,4 @@
 script:
     - mkdir -p $PAGES_DIR
     - cp -r $TARGET_DIR/* $PAGES_DIR/
-    - mv $PAGES_DIR/overview-features.html $PAGES_DIR/index.html
+    - mv $PAGES_DIR/overview-features.html $PAGES_DIR/index.html 
