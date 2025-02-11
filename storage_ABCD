@@ -1,4 +1,39 @@
-script:
-    - mkdir -p $PAGES_DIR
-    - cp -r $TARGET_DIR/* $PAGES_DIR/
-    - mv $PAGES_DIR/overview-features.html $PAGES_DIR/index.html 
+deploy_pages:
+  stage: deploy
+  image: alpine
+  script:
+    - export PAGES_URL="https://${CI_PROJECT_NAMESPACE}.gitlab.io/${CI_PROJECT_NAME}/"
+    - echo "$PAGES_URL" > pages_url.txt  # Zapisujemy link do pliku
+  artifacts:
+    paths:
+      - pages_url.txt  # Przechowujemy link jako artefakt
+  only:
+    - main
+
+
+send-email:
+  stage: send-email
+  image: alpine
+  dependencies:
+    - deploy_pages  # Pobiera artefakt z fazy deploy
+  script:
+    # 1. Odczytaj dynamiczny link do raportu
+    - export PAGES_URL=$(cat pages_url.txt)
+    
+    # 2. Pobranie treści maila ze zmiennej CI/CD i zapis do pliku
+    - echo -e "$EMAIL_TEMPLATE" > email_body.txt
+    
+    # 3. Zamiana {{PAGES_URL}} na rzeczywisty link
+    - sed -i "s|{{PAGES_URL}}|$PAGES_URL|g" email_body.txt
+
+    # 4. Debugowanie (opcjonalne) - Sprawdzenie, czy treść została poprawnie uzupełniona
+    - cat email_body.txt
+
+    # 5. Wysłanie e-maila przez SMTP
+    - |
+      curl --url "smtp://mailhost-arec.ubs.ch:25" \
+           --mail-from "do-not-reply@xx.com" \
+           --mail-rcpt "Krzysztof@gmail.com" \
+           --upload-file email_body.txt
+  only:
+    - main
