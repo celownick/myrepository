@@ -1,1 +1,8 @@
 MAVEN_OPTS="-Dhttps.protocols=TLSv1" mvn clean install
+mvn clean install -Dhttps.protocols=TLSv1
+
+export MAVEN_OPTS="-Dhttps.protocols=TLSv1"
+mvn clean install
+
+mvn help:system -Dhttps.protocols=TLSv1
+
