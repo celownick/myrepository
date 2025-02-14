@@ -21,3 +21,23 @@ public class ConfigLoader {
         return loadProperties().getProperty(key);
     }
 }
+
+
+
+public class ConfigLoader {
+
+    private static final String FILE_PATH = "env/config/uat.properties";
+
+    public static Properties loadProperties() {
+        Properties properties = new Properties();
+        try (InputStream inputStream = ConfigLoader.class.getClassLoader().getResourceAsStream(FILE_PATH)) {
+            if (inputStream == null) {
+                throw new IOException("Plik " + FILE_PATH + " nie został znaleziony!");
+            }
+            properties.load(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("❌ Błąd podczas ładowania pliku: " + FILE_PATH, e);
+        }
+        return properties;
+    }
+}
