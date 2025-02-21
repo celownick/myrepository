@@ -68,3 +68,37 @@ public class JsonDiffFlattener {
         }
     }
 }
+
+
+
+
+debug_job:
+  stage: debug
+  script:
+    - echo "🔍 Sprawdzam katalog PWB_Files..."
+    - ls -la "$CI_PROJECT_DIR" || echo "⚠ Katalog główny nie istnieje!"
+    - ls -la "$CI_PROJECT_DIR/PWB_Files" || echo "⚠ Katalog PWB_Files nie istnieje!"
+
+
+before_script:
+  - mkdir -p "$CI_PROJECT_DIR/PWB_Files"
+
+
+debug:
+  stage: debug
+  script:
+    - ls -la "$CI_PROJECT_DIR/PWB_files"
+
+
+
+before_script:
+  - git config --global user.name "GitLab CI"
+  - git config --global user.email "ci@example.com"
+  - git config --global --unset core.excludesfile || true
+  - git config --global --unset credential.helper || true
+  - git config --global --unset core.safecrlf || true
+
+
+
+
+
