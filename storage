@@ -21,7 +21,9 @@ public class ConfigLoader {
         return loadProperties().getProperty(key);
     }
 }
+Below you will find links to two repositories, abd and def, dedicated to automated testing. Each framework includes a pipeline configuration that enables tests to be executed daily according to a predefined schedule. After the tests are completed, a test report is generated, and an email is sent to a defined group of recipients.
 
+I have added you to the recipient list, and the email will be sent at approximately 6 AM UTC-0.
 
 
 public class ConfigLoader {
