@@ -21,10 +21,6 @@ public class ConfigLoader {
         return loadProperties().getProperty(key);
     }
 }
-Below you will find links to two repositories, abd and def, dedicated to automated testing. Each framework includes a pipeline configuration that enables tests to be executed daily according to a predefined schedule. After the tests are completed, a test report is generated, and an email is sent to a defined group of recipients.
-
-I have added you to the recipient list, and the email will be sent at approximately 6 AM UTC-0.
-
 
 public class ConfigLoader {
 
@@ -102,5 +98,37 @@ before_script:
 
 
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class TextUtils {
+
+    /**
+     * Extracts the first date-time from a given text.
+     * @param text the input string containing date-time values
+     * @return the first occurring date-time in the format DD/MM/YYYY HH:mm:ss
+     */
+    public static String extractFirstDateTime(String text) {
+        // Regular expression to match date-time format DD/MM/YYYY HH:mm:ss
+        String regex = "(\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2})";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        // If a match is found, return the first occurrence immediately
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return null; // Return null if no date-time is found
+    }
+
+    public static void main(String[] args) {
+        String text = "Some text ------- 01/01/2024 15:30:00 05/04/2025 12:45:30";
+
+        // Extract and print the first date-time
+        String firstDateTime = extractFirstDateTime(text);
+        System.out.println("Extracted First Date-Time: " + firstDateTime);
+    }
+}
 
 
