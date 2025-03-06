@@ -1,4 +1,37 @@
-        String extractedText = (String) js.executeScript(
-            "var span = document.evaluate(\"//span[@title='ghi']\", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;" +
-            "return span.nextSibling.textContent.trim();"
-        );
+    /**
+     * Extracts the first date-time from a given text.
+     * - If "------" appears before the first date or "------ -------" exists, return "".
+     * - If two date-times exist, return only the first one.
+     *
+     * @param text the input string containing date-time values
+     * @return the first occurring date-time in the format "DD/MM/YYYY HH:mm:ss" or an empty string
+     */
+    public static String extractFirstDateTime(String text) {
+        // Regular expression to match date-time format "DD/MM/YYYY HH:mm:ss"
+        String regex = "(\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2})";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        // Case: "------ -------" is present → return ""
+        if (text.contains("------ -------")) {
+            return "";
+        }
+
+        String firstDateTime = null;
+
+        // Find first date-time occurrence
+        if (matcher.find()) {
+            firstDateTime = matcher.group(1);
+        }
+
+        // If "------" appears before the first date, return ""
+        int firstDashIndex = text.indexOf("------");
+        int firstDateIndex = (firstDateTime != null) ? text.indexOf(firstDateTime) : -1;
+
+        if (firstDashIndex != -1 && (firstDateIndex == -1 || firstDashIndex < firstDateIndex)) {
+            return "";
+        }
+
+        // Return the first date-time found
+        return firstDateTime != null ? firstDateTime : "";
+    }
