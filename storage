@@ -35,3 +35,27 @@
         // Return the first date-time found
         return firstDateTime != null ? firstDateTime : "";
     }
+
+
+
+    public static boolean isToday(String dateStr) {
+        if (dateStr == null) {
+            throw new IllegalArgumentException("Data nie może być null!");
+        }
+
+        try {
+            // Ustawienie formatu daty (MM/dd/yyyy)
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+            // Konwersja podanego stringa na LocalDate
+            LocalDate inputDate = LocalDate.parse(dateStr, formatter);
+
+            // Pobranie dzisiejszej daty
+            LocalDate today = LocalDate.now();
+
+            // Porównanie dat
+            return inputDate.equals(today);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Nieprawidłowy format daty! Oczekiwany format: MM/dd/yyyy", e);
+        }
+    }
