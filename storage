@@ -1,35 +1,69 @@
-public class LatestLogFinder {
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class RecordFetcher {
 
     /**
-     * Znajduje najnowszy plik w katalogu, który zawiera określony fragment nazwy i kończy się na "_out".
+     * Ekstrakcja liczby przed "records fetched".
      *
-     * @param directoryPath ścieżka do katalogu, w którym szukamy plików
-     * @param keyword       fragment nazwy pliku, który ma być zawarty w wyniku (np. "def")
-     * @return Nazwa najnowszego pliku spełniającego kryteria lub null, jeśli żaden plik nie pasuje
+     * @param text Tekst wejściowy zawierający liczbę i "records fetched".
+     * @return Liczba jako `String`, jeśli istnieje, lub `null`, jeśli brak dopasowania.
+     * @throws IllegalArgumentException jeśli `text` jest `null` lub nie zawiera odpowiedniego wzorca.
      */
-    public static String findLatestLogFile(String directoryPath, String keyword) {
-        File dir = new File(directoryPath);
-
-        // Sprawdzenie, czy katalog istnieje i jest folderem
-        if (!dir.exists() || !dir.isDirectory()) {
-            throw new IllegalArgumentException("Podana ścieżka nie istnieje lub nie jest katalogiem: " + directoryPath);
-        }
-
-        // Pobranie wszystkich plików, które spełniają kryteria (zawierają keyword i kończą się na "_out")
-        File[] matchingFiles = dir.listFiles(file ->
-                file.isFile() &&                         // Tylko pliki (ignorujemy foldery)
-                file.getName().contains(keyword) &&     // Musi zawierać przekazany keyword
-                file.getName().endsWith("_out")         // Musi kończyć się na "_out"
-        );
-
-        // Jeśli brak pasujących plików, zwracamy null
-        if (matchingFiles == null || matchingFiles.length == 0) {
-            return null;
-        }
-
-        // Znalezienie pliku z najnowszą datą modyfikacji
-        Optional<File> latestFile = Arrays.stream(matchingFiles)
-                .max(Comparator.comparingLong(File::lastModified));
-
-        return latestFile.map(File::getName).orElse(null);
+    public static String extractRecordCount(String text) {
+        return extractNumber(text, "(\\d+)\\s+records fetched", "Nie znaleziono liczby przed 'records fetched'!");
     }
+
+    /**
+     * Ekstrakcja liczby po "Total Rows Merged".
+     *
+     * @param text Tekst wejściowy zawierający liczbę po "Total Rows Merged".
+     * @return Liczba jako `String`, jeśli istnieje, lub `null`, jeśli brak dopasowania.
+     * @throws IllegalArgumentException jeśli `text` jest `null` lub nie zawiera odpowiedniego wzorca.
+     */
+    public static String extractMergedRows(String text) {
+        return extractNumber(text, "Total\\s+Rows\\s+Merged\\s+(\\d+)", "Nie znaleziono liczby po 'Total Rows Merged'!");
+    }
+
+    /**
+     * Metoda ogólna do ekstrakcji liczby z tekstu na podstawie wyrażenia regularnego.
+     *
+     * @param text   Tekst wejściowy.
+     * @param regex  Wzorzec do wyszukania liczby.
+     * @param errorMessage Komunikat błędu w przypadku braku dopasowania.
+     * @return Liczba jako String lub wyjątek w przypadku braku dopasowania.
+     */
+    private static String extractNumber(String text, String regex, String errorMessage) {
+        if (text == null) {
+            throw new IllegalArgumentException("Tekst wejściowy nie może być null!");
+        }
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        if (matcher.find()) {
+            return matcher.group(1); // Zwraca znalezioną liczbę jako String
+        } else {
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    public static void main(String[] args) {
+        // Przykładowe testy
+        String test1 = "sdffs sdf sdf dsf dsf dsf dfdsf 23 records fetched";
+        String test2 = "Data processed, total: 145 records fetched";
+        String test3 = "Brak danych records fetched"; // ❌ Niepoprawny format
+        String test4 = "sdf dsfsd sdfds Total Rows Merged 23";
+        String test5 = "Total Rows Merged 99 completed";
+
+        try {
+            System.out.println("Liczba rekordów: " + extractRecordCount(test1)); // ✅ "23"
+            System.out.println("Liczba rekordów: " + extractRecordCount(test2)); // ✅ "145"
+            System.out.println("Liczba scalonych wierszy: " + extractMergedRows(test4)); // ✅ "23"
+            System.out.println("Liczba scalonych wierszy: " + extractMergedRows(test5)); // ✅ "99"
+            System.out.println("Liczba rekordów: " + extractRecordCount(test3)); // ❌ Wyjątek
+        } catch (IllegalArgumentException e) {
+            System.err.println("Błąd: " + e.getMessage());
+        }
+    }
+}
