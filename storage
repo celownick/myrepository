@@ -1,61 +1,35 @@
+public class LatestLogFinder {
+
     /**
-     * Extracts the first date-time from a given text.
-     * - If "------" appears before the first date or "------ -------" exists, return "".
-     * - If two date-times exist, return only the first one.
+     * Znajduje najnowszy plik w katalogu, który zawiera określony fragment nazwy i kończy się na "_out".
      *
-     * @param text the input string containing date-time values
-     * @return the first occurring date-time in the format "DD/MM/YYYY HH:mm:ss" or an empty string
+     * @param directoryPath ścieżka do katalogu, w którym szukamy plików
+     * @param keyword       fragment nazwy pliku, który ma być zawarty w wyniku (np. "def")
+     * @return Nazwa najnowszego pliku spełniającego kryteria lub null, jeśli żaden plik nie pasuje
      */
-    public static String extractFirstDateTime(String text) {
-        // Regular expression to match date-time format "DD/MM/YYYY HH:mm:ss"
-        String regex = "(\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2})";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(text);
+    public static String findLatestLogFile(String directoryPath, String keyword) {
+        File dir = new File(directoryPath);
 
-        // Case: "------ -------" is present → return ""
-        if (text.contains("------ -------")) {
-            return "";
+        // Sprawdzenie, czy katalog istnieje i jest folderem
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new IllegalArgumentException("Podana ścieżka nie istnieje lub nie jest katalogiem: " + directoryPath);
         }
 
-        String firstDateTime = null;
+        // Pobranie wszystkich plików, które spełniają kryteria (zawierają keyword i kończą się na "_out")
+        File[] matchingFiles = dir.listFiles(file ->
+                file.isFile() &&                         // Tylko pliki (ignorujemy foldery)
+                file.getName().contains(keyword) &&     // Musi zawierać przekazany keyword
+                file.getName().endsWith("_out")         // Musi kończyć się na "_out"
+        );
 
-        // Find first date-time occurrence
-        if (matcher.find()) {
-            firstDateTime = matcher.group(1);
+        // Jeśli brak pasujących plików, zwracamy null
+        if (matchingFiles == null || matchingFiles.length == 0) {
+            return null;
         }
 
-        // If "------" appears before the first date, return ""
-        int firstDashIndex = text.indexOf("------");
-        int firstDateIndex = (firstDateTime != null) ? text.indexOf(firstDateTime) : -1;
+        // Znalezienie pliku z najnowszą datą modyfikacji
+        Optional<File> latestFile = Arrays.stream(matchingFiles)
+                .max(Comparator.comparingLong(File::lastModified));
 
-        if (firstDashIndex != -1 && (firstDateIndex == -1 || firstDashIndex < firstDateIndex)) {
-            return "";
-        }
-
-        // Return the first date-time found
-        return firstDateTime != null ? firstDateTime : "";
-    }
-
-
-
-    public static boolean isToday(String dateStr) {
-        if (dateStr == null) {
-            throw new IllegalArgumentException("Data nie może być null!");
-        }
-
-        try {
-            // Ustawienie formatu daty (MM/dd/yyyy)
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-
-            // Konwersja podanego stringa na LocalDate
-            LocalDate inputDate = LocalDate.parse(dateStr, formatter);
-
-            // Pobranie dzisiejszej daty
-            LocalDate today = LocalDate.now();
-
-            // Porównanie dat
-            return inputDate.equals(today);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Nieprawidłowy format daty! Oczekiwany format: MM/dd/yyyy", e);
-        }
+        return latestFile.map(File::getName).orElse(null);
     }
