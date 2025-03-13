@@ -1,16 +1,14 @@
 stages:
-  - setup
+  - check
   - test
 
-mount-logs:
-  stage: setup
+check-smb-access:
+  stage: check
   before_script:
-    - apt-get update && apt-get install -y cifs-utils  # 📌 Instalacja pakietu dla CIFS/SMB
+    - apt-get update && apt-get install -y smbclient  # Instalacja klienta SMB
   script:
-    - echo "🔗 Montowanie zasobu \\groupshare\logs w /mnt/logs..."
-    - mkdir -p /mnt/logs
-    - mount -t cifs //groupshare/logs /mnt/logs -o username=DOMAIN/USERNAME,password=PASSWORD,vers=3.0
-    - ls -la /mnt/logs
+    - echo "🔍 Sprawdzanie dostępnych zasobów SMB na serwerze Windows..."
+    - smbclient -L //192.168.X.Y/ -U $SMB_USERNAME%$SMB_PASSWORD
   only:
     - merge_requests
     - schedules
@@ -19,7 +17,9 @@ mount-logs:
 run-tests:
   stage: test
   script:
-    - echo "🔍 Sprawdzanie logów..."
-    - cat /mnt/logs/test.log || echo "❌ Plik nie znaleziony!"
+    - echo "📂 Pobieranie plików logów..."
+    - smbclient //192.168.X.Y/Logs -U $SMB_USERNAME%$SMB_PASSWORD -c "ls"
+    - smbclient //192.168.X.Y/Logs -U $SMB_USERNAME%$SMB_PASSWORD -c "get test.log"
+    - cat test.log
   dependencies:
-    - mount-logs
+    - check-smb-access
