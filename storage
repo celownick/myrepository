@@ -1,25 +1,36 @@
-stages:
-  - check
-  - test
+import java.io.File;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Optional;
 
-check-smb-access:
-  stage: check
-  before_script:
-    - apt-get update && apt-get install -y smbclient  # Instalacja klienta SMB
-  script:
-    - echo "🔍 Sprawdzanie dostępnych zasobów SMB na serwerze Windows..."
-    - smbclient -L //192.168.X.Y/ -U $SMB_USERNAME%$SMB_PASSWORD
-  only:
-    - merge_requests
-    - schedules
-    - pipelines
+public class LatestFileFinder {
+    public static Optional<File> findLatestFileModifiedToday(File[] matchingFiles) {
+        LocalDate today = LocalDate.now();
 
-run-tests:
-  stage: test
-  script:
-    - echo "📂 Pobieranie plików logów..."
-    - smbclient //192.168.X.Y/Logs -U $SMB_USERNAME%$SMB_PASSWORD -c "ls"
-    - smbclient //192.168.X.Y/Logs -U $SMB_USERNAME%$SMB_PASSWORD -c "get test.log"
-    - cat test.log
-  dependencies:
-    - check-smb-access
+        return Arrays.stream(matchingFiles)
+            .filter(file -> {
+                LocalDate fileModifiedDate = LocalDate.ofInstant(
+                    file.lastModified() > 0 ?
+                        java.time.Instant.ofEpochMilli(file.lastModified()) :
+                        java.time.Instant.now(), // Obsługa błędnych dat
+                    ZoneId.systemDefault()
+                );
+                return fileModifiedDate.equals(today);
+            })
+            .max(Comparator.comparingLong(File::lastModified));
+    }
+
+    public static void main(String[] args) {
+        File folder = new File("C:/logs");
+        File[] matchingFiles = folder.listFiles((dir, name) -> name.endsWith(".log"));
+
+        Optional<File> latestFile = findLatestFileModifiedToday(matchingFiles != null ? matchingFiles : new File[0]);
+
+        latestFile.ifPresentOrElse(
+            file -> System.out.println("📂 Najnowszy plik zmodyfikowany dzisiaj: " + file.getName()),
+            () -> System.out.println("❌ Brak plików zmodyfikowanych dzisiaj")
+        );
+    }
+}
