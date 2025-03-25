@@ -1,36 +1,22 @@
-import java.io.File;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Optional;
-
-public class LatestFileFinder {
-    public static Optional<File> findLatestFileModifiedToday(File[] matchingFiles) {
-        LocalDate today = LocalDate.now();
-
-        return Arrays.stream(matchingFiles)
-            .filter(file -> {
-                LocalDate fileModifiedDate = LocalDate.ofInstant(
-                    file.lastModified() > 0 ?
-                        java.time.Instant.ofEpochMilli(file.lastModified()) :
-                        java.time.Instant.now(), // Obsługa błędnych dat
-                    ZoneId.systemDefault()
-                );
-                return fileModifiedDate.equals(today);
-            })
-            .max(Comparator.comparingLong(File::lastModified));
-    }
-
-    public static void main(String[] args) {
-        File folder = new File("C:/logs");
-        File[] matchingFiles = folder.listFiles((dir, name) -> name.endsWith(".log"));
-
-        Optional<File> latestFile = findLatestFileModifiedToday(matchingFiles != null ? matchingFiles : new File[0]);
-
-        latestFile.ifPresentOrElse(
-            file -> System.out.println("📂 Najnowszy plik zmodyfikowany dzisiaj: " + file.getName()),
-            () -> System.out.println("❌ Brak plików zmodyfikowanych dzisiaj")
-        );
-    }
-}
+pages:
+  stage: deploy
+  allow_failure: false
+  dependencies:
+    - run-test
+  only:
+    refs:
+      - merge_request
+      - schedules
+      - pipelines
+  script:
+    - echo "Creating public directory for pipeline $CI_PIPELINE_ID"
+    - mkdir -p public/$CI_PIPELINE_ID
+    - echo "Copying reports to public/$CI_PIPELINE_ID"
+    - cp -r target/cucumber-reports-ext/cucumber-html-reports/* public/$CI_PIPELINE_ID/
+    - mv public/$CI_PIPELINE_ID/overview-features.html public/$CI_PIPELINE_ID/index.html
+    - echo "Report available at: $CI_PAGES_URL/$CI_PIPELINE_ID"
+    - echo "$CI_PAGES_URL/$CI_PIPELINE_ID" > public/$CI_PIPELINE_ID/report_url.txt
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
