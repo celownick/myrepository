@@ -20,3 +20,19 @@ pages:
     paths:
       - public
     expire_in: 30 days
+
+
+
+ script:
+    - echo "Loading report URL from file..."
+    - REPORT_URL=$(cat public/$CI_PIPELINE_ID/report_url.txt)
+    - echo "Report URL: $REPORT_URL"
+    - echo -e "$EMAIL_TEMPLATE" > email_body.txt
+    - sed -i "s|{{pages_url}}|$REPORT_URL|g" email_body.txt
+    - echo "Final email content:"
+    - cat email_body.txt
+    - |
+      curl --url "smtp://mailhost-arec.xxx.ch:25" \
+           --mail-from "your-address@example.com" \
+           --mail-rcpt "recipient@example.com" \
+           --upload-file email_body.txt
