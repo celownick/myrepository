@@ -1,0 +1,149 @@
+Test Automation Integration into SDLC
+(End-to-end stages from analysis to regression)
+1. System Analysis and Test Planning
+Understand System Architecture
+
+Analyze components, interfaces, dependencies
+
+Identify Testable Requirements
+
+Functional and non-functional
+
+Define Test Scope
+
+What should be automated vs. manual
+
+Select Automation Tools
+
+Selenium, Cypress, Cucumber, REST Assured, etc.
+
+Define Test Objectives and KPIs
+
+Coverage goals, execution frequency, stability, maintainability
+
+2. Requirement Gathering and Refinement
+Collaborate with Stakeholders
+
+Business analysts, product owners, developers
+
+Define Acceptance Criteria
+
+Use Gherkin (Given-When-Then) for BDD if applicable
+
+Maintain Traceability
+
+Map test cases to requirements (e.g., via Jira, Xray)
+
+3. Test Case Design & Prioritization
+Create Manual Test Scenarios First (If Needed)
+
+Especially for critical paths
+
+Convert to Automation Scripts
+
+Modular, maintainable, reusable
+
+Tag Tests by Type
+
+smoke, regression, sanity, E2E, performance
+
+Prioritize Based on Risk and Business Value
+
+4. Automation Development
+Follow Coding Standards
+
+Naming, structure, DRY principles
+
+Use Page Object Model / Screenplay Pattern
+
+Parameterize Tests (Data-Driven Testing)
+
+Version Control Integration
+
+Place test code in Git alongside application repo (or dedicated repo)
+
+Recommended: tests/ folder with same branching strategy as the app
+
+5. Test Execution Strategy
+Set Up CI/CD Pipelines
+
+GitLab CI, Jenkins, GitHub Actions, etc.
+
+Define Trigger Conditions
+
+On every commit, nightly builds, pull requests, or manually
+
+Parallel Execution
+
+Use containers, grids, cloud execution (e.g., Selenium Grid, BrowserStack)
+
+6. Test Merge Strategy (Governance)
+Isolated Feature Branches for Test Development
+
+Follow Git Flow / Trunk-Based Development
+
+Pull/Merge Request Reviews
+
+Include test maintainers for reviews
+
+Validation Before Merge
+
+Run automated tests on feature branches
+
+Tagging Strategy
+
+Tag tests with @ready, @wip, @deprecated, etc.
+
+7. Regression Suite Integration
+Maintain a Stable Regression Pack
+
+Only reliable and stable automated tests
+
+Smoke Tests Run on Every Commit
+
+Full Regression
+
+Before release or major merges
+
+Incremental Update
+
+Automatically or manually include new stable tests
+
+8. Reporting and Analysis
+Generate Rich Reports
+
+HTML (ExtentReports, Allure, Cucumber Reports)
+
+Store Reports per Pipeline Run
+
+Use GitLab Pages / S3 / Shared Drive
+
+Send Automated Notifications
+
+Email, Slack, Jira comments
+
+9. Test Maintenance & Review
+Regularly Review Flaky Tests
+
+Quarantine if unstable
+
+Refactor and Reuse Test Logic
+
+Use shared libraries/utilities
+
+Deprecate Obsolete Scenarios
+
+Track Test Coverage
+
+Code coverage + requirement coverage
+
+10. Continuous Feedback Loop
+Integrate with Development Feedback
+
+Bugs -> Tests -> Fixes -> Rerun
+
+Gather Metrics
+
+Time to run, pass rate, flaky rate, coverage growth
+
+Use Metrics to Drive Improvements
