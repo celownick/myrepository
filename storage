@@ -9,13 +9,14 @@ pages:
       - schedules
       - pipelines
   script:
-    - echo "Creating public directory for pipeline $CI_PIPELINE_ID"
-    - mkdir -p public/$CI_PIPELINE_ID
-    - echo "Copying reports to public/$CI_PIPELINE_ID"
-    - cp -r target/cucumber-reports-ext/cucumber-html-reports/* public/$CI_PIPELINE_ID/
-    - mv public/$CI_PIPELINE_ID/overview-features.html public/$CI_PIPELINE_ID/index.html
-    - echo "Report available at: $CI_PAGES_URL/$CI_PIPELINE_ID"
-    - echo "$CI_PAGES_URL/$CI_PIPELINE_ID" > public/$CI_PIPELINE_ID/report_url.txt
+script:
+  - echo "Creating public directory for branch $CI_COMMIT_REF_NAME and pipeline $CI_PIPELINE_ID"
+  - mkdir -p public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID
+  - echo "Copying reports to public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID"
+  - cp -r target/cucumber-reports-ext/cucumber-html-reports/* public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID/
+  - mv public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID/overview-features.html public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID/index.html
+  - echo "Report available at: $CI_PAGES_URL/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID"
+  - echo "$CI_PAGES_URL/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID" > public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID/report_url.txt
   artifacts:
     paths:
       - public
