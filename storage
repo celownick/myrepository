@@ -26,7 +26,8 @@ script:
 
  script:
     - echo "Loading report URL from file..."
-    - REPORT_URL=$(cat public/$CI_PIPELINE_ID/report_url.txt)
+     # - REPORT_URL=$(cat public/$CI_PIPELINE_ID/report_url.txt)
+    - REPORT_URL=$(cat public/$CI_COMMIT_REF_NAME/$CI_PIPELINE_ID/report_url.txt)
     - echo "Report URL: $REPORT_URL"
     - echo -e "$EMAIL_TEMPLATE" > email_body.txt
     - sed -i "s|{{pages_url}}|$REPORT_URL|g" email_body.txt
