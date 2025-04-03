@@ -31,17 +31,20 @@ script:
       - public
     expire_in: 30 days
 
- script:
-    - echo "Loading report URL from file..."
-     # - REPORT_URL=$(cat public/$CI_PIPELINE_ID/report_url.txt)
+send-email:
+  stage: notify
+  dependencies:
+    - pages
+  script:
+    - BRANCH_TYPE=$(cat branch_type.txt)
+    - echo "📧 BRANCH_TYPE from file: $BRANCH_TYPE"
     - REPORT_URL=$(cat public/$BRANCH_TYPE/$CI_PIPELINE_ID/report_url.txt)
     - echo "Report URL: $REPORT_URL"
     - echo -e "$EMAIL_TEMPLATE" > email_body.txt
     - sed -i "s|{{pages_url}}|$REPORT_URL|g" email_body.txt
-    - echo "Final email content:"
     - cat email_body.txt
     - |
-      curl --url "smtp://mailhost-arec.xxx.ch:25" \
+      curl --url "smtp://mailhost..." \
            --mail-from "your-address@example.com" \
            --mail-rcpt "recipient@example.com" \
            --upload-file email_body.txt
